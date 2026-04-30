@@ -152,15 +152,16 @@ Key fields are described below:
 - `alert_topology` - Event topology: `"Track"`.
 - `number_of_events` - Number of events contributing to the alert (1, being a single neutrino alert).
 - `ra`, `dec` - Best-fit right ascension and declination (J2000, degrees).
-- `ra_dec_error` - Combined positional uncertainty, calculated from the RA and Dec errors at 90% containment. For `"record_number"`=`1`, it is calculated in the following way, taking into account the spherical geometry:
-
+- `ra_dec_error` - Combined positional uncertainty at 90% containment. For `"record_number"`=`1`, it is obtained by combining the asymmetric uncertainties in RA and Dec, as reported in the GCN Circular, accounting for the spherical geometry of the sky. In particular, the RA uncertainty is rescaled by a factor \cos(\delta), since lines of constant RA converge toward the poles. First, we define symmetric uncertainties as the average of the upper and lower bounds:
 ```python
 ra_err_mean = (abs(ra_err_plus) + abs(ra_err_minus)) / 2
 dec_err_mean = (abs(dec_err_plus) + abs(dec_err_minus)) / 2
-err_combined = np.sqrt( (ra_err_mean * np.cos(np.deg2rad(dec)))**2 + (dec_err_mean)**2 )
 ```
-
-These `ra_err_plus`, `ra_err_minus`, `dec_err_plus`, and `dec_err_minus` values correspond to the 90% containment errors, which are published in the GCN circular associated with the event.
+The combined positional uncertainty is then defined as:
+```python
+err_combined = np.sqrt(ra_err_mean*np.cos(dec)*dec_err_mean)
+```
+This expression corresponds to the radius of a circle having the same area as the error ellipse defined by the projected RA and Dec uncertainties. In this sense, it provides an effective scalar representation of the positional uncertainty that preserves the area of the confidence region. The quantities `ra_err_plus`, `ra_err_minus`, `dec_err_plus`, and `dec_err_minus` correspond to the 90% containment uncertainties reported in the GCN circular associated with the event.
 
 - `containment_probability` - Confidence level for the positional error (e.g., `0.9` for 90%).
 - `systematic_included` - `True` if systematics are included in the positional uncertainty, otherwise `False`. For `"record_number"`=`0` (preliminary reconstruction), this is set to `False`. For `"record_number"`=`1` (updated reconstruction associated to the GCN circular), this is set to `True`. In fact, starting from September 2024, the reconstruction algorithms used for realtime alerts have been improved [@2024GCN.38267....1I]. Systematic errors affecting the reconstructions, such as those from the ice model or detector geometry, have been thoroughly investigated to ensure proper statistical coverage (see details in [@2025icrc.confE1184S]).
